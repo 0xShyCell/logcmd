@@ -1,0 +1,10 @@
+# logcmd has zero external dependencies.
+#
+# Everything it uses is from the Python 3 standard library:
+# argparse, fcntl, getpass, html, os, pty, re, select, shlex, shutil,
+# signal, socket, struct, subprocess, sys, termios, time, datetime
+#
+# Note: fcntl, pty, and termios are POSIX-only modules, so logcmd runs
+# on Linux and macOS but NOT on native Windows (WSL works fine).
+#
+# No `pip install` is required to run this tool.
