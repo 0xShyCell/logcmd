@@ -56,29 +56,96 @@ logcmd "hydra -l admin -P rockyou.txt ssh://10.211.11.10" hydra.txt --append
 
 Format is auto-detected from the file extension: `.md`/`.markdown` → Markdown, `.html`/`.htm` → HTML, anything else → plain text.
 
-### Sample output (Markdown)
+### Real example
 
-```markdown
-# Command Log: Nmap
+Run against HackTheBox's "Dancing" (an easy, publicly documented training box). Output streams live exactly as it would running the command directly, and a structured log is saved alongside it.
 
-| Field | Value |
-|---|---|
-| Timestamp | 2026-07-03 14:02:11 IST |
-| User | noob@kali |
-| CWD | `/home/noob/htb/target` |
-| Tool | Nmap |
-| Target | 10.211.11.10 |
-| Command | `nmap -sV -p- 10.211.11.10` |
-| Exit Code | 0 |
-| Duration | 145.32s |
-| Status | SUCCESS |
-
-​```text
-Starting Nmap 7.94 ( https://nmap.org )
-Nmap scan report for 10.211.11.10
-...
-​```
 ```
+$ logcmd "nxc smb 10.129.74.71 -u Anonymous -p Anonymous --shares" nxc.txt
+SMB         10.129.74.71    445    DANCING          [*] Windows 10 / Server 2019 Build 17763 x64 (name:DANCING) (domain:Dancing) (signing:False) (SMBv1:None) (Null Auth:True)
+SMB         10.129.74.71    445    DANCING          [+] Dancing\Anonymous:Anonymous (Guest)
+SMB         10.129.74.71    445    DANCING          [*] Enumerated shares
+SMB         10.129.74.71    445    DANCING          Share           Permissions     Remark
+SMB         10.129.74.71    445    DANCING          -----           -----------     ------
+SMB         10.129.74.71    445    DANCING          ADMIN$                          Remote Admin
+SMB         10.129.74.71    445    DANCING          C$                              Default share
+SMB         10.129.74.71    445    DANCING          IPC$            READ            Remote IPC
+SMB         10.129.74.71    445    DANCING          WorkShares      READ,WRITE
+
+[+] Log saved -> nxc.txt (format: plain, exit: 0, duration: 24.57s)
+```
+
+`nxc.txt` on disk — note `nxc` is automatically resolved to its full display name via `TOOL_NAME_MAP`, and the target IP is auto-detected:
+
+```
+============================================================
+Timestamp : 2026-07-03 04:15:21 IST
+User      : noob@noob
+CWD       : /home/noob
+Tool      : NetExec
+Target    : 10.129.74.71
+Command   : nxc smb 10.129.74.71 -u Anonymous -p Anonymous --shares
+============================================================
+
+SMB         10.129.74.71    445    DANCING          [*] Windows 10 / Server 2019 Build 17763 x64 (name:DANCING) (domain:Dancing) (signing:False) (SMBv1:None) (Null Auth:True)
+SMB         10.129.74.71    445    DANCING          [+] Dancing\Anonymous:Anonymous (Guest)
+SMB         10.129.74.71    445    DANCING          [*] Enumerated shares
+SMB         10.129.74.71    445    DANCING          Share           Permissions     Remark
+SMB         10.129.74.71    445    DANCING          -----           -----------     ------
+SMB         10.129.74.71    445    DANCING          ADMIN$                          Remote Admin
+SMB         10.129.74.71    445    DANCING          C$                              Default share
+SMB         10.129.74.71    445    DANCING          IPC$            READ            Remote IPC
+SMB         10.129.74.71    445    DANCING          WorkShares      READ,WRITE
+
+============================================================
+Exit Code : 0
+Duration  : 24.57s
+Status    : SUCCESS
+============================================================
+```
+
+A follow-up `nmap` scan against the same host, logged the same way:
+
+```
+$ logcmd "nmap -p135,139,445 -sV -sC 10.129.74.71" nmap.txt
+[+] Log saved -> nmap.txt (format: plain, exit: 0, duration: 36.55s)
+
+$ cat nmap.txt
+============================================================
+Timestamp : 2026-07-03 04:20:11 IST
+User      : noob@noob
+CWD       : /home/noob
+Tool      : Nmap
+Target    : 10.129.74.71
+Command   : nmap -p135,139,445 -sV -sC 10.129.74.71
+============================================================
+
+PORT    STATE SERVICE       VERSION
+135/tcp open  msrpc         Microsoft Windows RPC
+139/tcp open  netbios-ssn   Microsoft Windows netbios-ssn
+445/tcp open  microsoft-ds?
+Service Info: OS: Windows; CPE: cpe:/o:microsoft:windows
+
+Host script results:
+| smb2-security-mode:
+|   3:1:1:
+|_    Message signing enabled but not required
+| smb2-time:
+|   date: 2026-07-03T02:50:41
+|_  start_date: N/A
+|_clock-skew: 4h00m00s
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 36.52 seconds
+
+============================================================
+Exit Code : 0
+Duration  : 36.55s
+Status    : SUCCESS
+============================================================
+```
+
+Every run against this target — `smbclient`, `nxc`, `nmap` — produces the same consistent, timestamped, attributable format, ready to drop straight into a report's evidence appendix.
 
 ## How it works
 
