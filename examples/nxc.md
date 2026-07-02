@@ -1,0 +1,65 @@
+# Example: nxc (NetExec)
+
+Target: HackTheBox "Dancing" (easy, publicly documented training box).
+
+### Before
+
+```
+noob@noob: ~ $ nxc smb 10.129.74.71 -u 'Anonymous' -p 'Anonymous' --shares
+SMB         10.129.74.71    445    DANCING          [*] Windows 10 / Server 2019 Build 17763 x64 (name:DANCING) (domain:Dancing) (signing:False) (SMBv1:None) (Null Auth:True)
+SMB         10.129.74.71    445    DANCING          [+] Dancing\Anonymous:Anonymous (Guest)
+SMB         10.129.74.71    445    DANCING          [*] Enumerated shares
+SMB         10.129.74.71    445    DANCING          Share           Permissions     Remark
+SMB         10.129.74.71    445    DANCING          -----           -----------     ------
+SMB         10.129.74.71    445    DANCING          ADMIN$                          Remote Admin
+SMB         10.129.74.71    445    DANCING          C$                              Default share
+SMB         10.129.74.71    445    DANCING          IPC$            READ            Remote IPC
+SMB         10.129.74.71    445    DANCING          WorkShares      READ,WRITE
+```
+
+### After
+
+Note that `nxc` is automatically resolved to its full display name (`NetExec`) via `TOOL_NAME_MAP`, and the target IP is auto-detected — no manual tagging required.
+
+```
+noob@noob: ~ $ logcmd 'nxc smb 10.129.74.71 -u Anonymous -p Anonymous --shares' nxc.txt
+SMB         10.129.74.71    445    DANCING          [*] Windows 10 / Server 2019 Build 17763 x64 (name:DANCING) (domain:Dancing) (signing:False) (SMBv1:None) (Null Auth:True)
+SMB         10.129.74.71    445    DANCING          [+] Dancing\Anonymous:Anonymous (Guest)
+SMB         10.129.74.71    445    DANCING          [*] Enumerated shares
+SMB         10.129.74.71    445    DANCING          Share           Permissions     Remark
+SMB         10.129.74.71    445    DANCING          -----           -----------     ------
+SMB         10.129.74.71    445    DANCING          ADMIN$                          Remote Admin
+SMB         10.129.74.71    445    DANCING          C$                              Default share
+SMB         10.129.74.71    445    DANCING          IPC$            READ            Remote IPC
+SMB         10.129.74.71    445    DANCING          WorkShares      READ,WRITE
+
+[+] Log saved -> nxc.txt (format: plain, exit: 0, duration: 24.57s)
+
+noob@noob: ~ $ cat nxc.txt
+============================================================
+Timestamp : 2026-07-03 04:15:21 IST
+User      : noob@noob
+CWD       : /home/noob
+Tool      : NetExec
+Target    : 10.129.74.71
+Command   : nxc smb 10.129.74.71 -u Anonymous -p Anonymous --shares
+============================================================
+
+SMB         10.129.74.71    445    DANCING          [*] Windows 10 / Server 2019 Build 17763 x64 (name:DANCING) (domain:Dancing) (signing:False) (SMBv1:None) (Null Auth:True)
+SMB         10.129.74.71    445    DANCING          [+] Dancing\Anonymous:Anonymous (Guest)
+SMB         10.129.74.71    445    DANCING          [*] Enumerated shares
+SMB         10.129.74.71    445    DANCING          Share           Permissions     Remark
+SMB         10.129.74.71    445    DANCING          -----           -----------     ------
+SMB         10.129.74.71    445    DANCING          ADMIN$                          Remote Admin
+SMB         10.129.74.71    445    DANCING          C$                              Default share
+SMB         10.129.74.71    445    DANCING          IPC$            READ            Remote IPC
+SMB         10.129.74.71    445    DANCING          WorkShares      READ,WRITE
+
+============================================================
+Exit Code : 0
+Duration  : 24.57s
+Status    : SUCCESS
+============================================================
+```
+
+Raw captured log: [`nxc_dancing.txt`](nxc_dancing.txt)
