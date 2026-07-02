@@ -22,6 +22,8 @@ Piping a command's output to a file with `> log.txt` either loses color entirely
 - **Carriage-return collapsing** — progress-bar/spinner output (nmap `--stats-every`, hashcat, hydra) is collapsed to its final rendered line instead of dumping every intermediate frame.
 - **Zero dependencies** — pure Python 3 standard library.
 
+**Verified against:** `smbclient`, `nxc` (NetExec), `nmap`. `logcmd` works with any shell command generically — it's a pty wrapper, not tool-specific — and the tools listed in `TOOL_NAME_MAP` get clean display names in the metadata, see `examples/` and `screenshots/`" instead of just asserting "confirmed end-to-end".
+
 ## Installation
 
 ```bash
