@@ -1,8 +1,9 @@
 # Examples
+This directory contains real `logcmd` examples captured during testing
+against Hack The Box's **Dancing** machine (an easy, publicly documented
+training target).
 
-Real `logcmd` output, captured against HackTheBox's "Dancing" (an easy, publicly documented training box) — not fabricated samples.
-
-Each tool has a before/after write-up showing the raw command's output next to the same command wrapped in `logcmd`, plus the raw captured log file it produces.
+These are genuine command outputs and logs—not fabricated examples.
 
 | Tool | Before/After write-up | Raw captured log |
 |---|---|---|
@@ -12,4 +13,5 @@ Each tool has a before/after write-up showing the raw command's output next to t
 
 Metadata in every captured log (timestamp, user@host, cwd, tool, target, exit code, duration, status) is auto-populated by `logcmd` itself — nothing here is hand-edited.
 
-See the main [README](../README.md#real-example) for a condensed version of these same runs.
+For installation, usage, and additional examples, see the main
+[README](../README.md).
