@@ -55,12 +55,23 @@ in the generated metadata.
 
 ## Installation
 
+**Requirements:** Python 3.8+ (Linux, macOS, or WSL)
+
+### Option 1 – Clone the repository
+
 ```bash
 git clone https://github.com/0xShyCell/logcmd.git
 cd logcmd
 
 chmod +x logcmd.py
 sudo cp logcmd.py /usr/local/bin/logcmd
+```
+
+### Option 2 – One-line installation
+
+```bash
+git clone https://github.com/0xShyCell/logcmd.git
+sudo install -m 755 logcmd/logcmd.py /usr/local/bin/logcmd
 ```
 
 ## Usage
