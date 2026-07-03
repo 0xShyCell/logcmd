@@ -1,3 +1,6 @@
+cmd : logcmd "nxc smb 10.129.74.71 -u Anonymous -p Anonymous --shares" nxc.txt
+to read : cat nxc.txt
+
 ============================================================
 Timestamp : 2026-07-03 04:15:21 IST
 User      : noob@noob
