@@ -1,7 +1,10 @@
 # Screenshots
 
-This folder is referenced from the main README but is currently empty — add a real terminal screenshot here before pushing, or remove the `screenshots/` link from the README if you'd rather skip it for now.
+### smbclient — live output + save confirmation
+![logcmd smbclient](logcmd_smbclient.png)
 
-**Suggested screenshot:** run one of the commands from [`../examples/`](../examples/) (e.g. the `nxc` or `nmap` run against Dancing) with `logcmd`, and capture the live colored terminal output — ideally showing both the live run and the `[+] Log saved -> ...` confirmation line in one frame. Name it something like `logcmd_live_run.png`.
+### nxc (NetExec) — live colored output + save confirmation
+![logcmd nxc](logcmd_nxc.png)
 
-Once added, update the README's screenshots link/section to reference it directly, and delete this file.
+### nmap — HTML output rendered in-browser
+![logcmd nmap HTML export](logcmd_nmap_html.png)
