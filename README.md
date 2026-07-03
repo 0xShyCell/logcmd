@@ -153,6 +153,7 @@ A follow-up `nmap` scan against the same host, logged the same way:
 
 ```
 $ logcmd "nmap -p135,139,445 -sV -sC 10.129.74.71" nmap.txt
+...
 [+] Log saved -> nmap.txt (format: plain, exit: 0, duration: 36.55s)
 
 $ cat nmap.txt
