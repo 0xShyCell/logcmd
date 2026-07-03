@@ -8,7 +8,7 @@
 logcmd "smbclient -L //<target> -N" smb.txt
 ```
 
-![SMBClient](screenshots/logcmd_smbclient.png)
+![SMBClient](logcmd_smbclient.png)
 
 ---
 
@@ -20,7 +20,7 @@ logcmd "smbclient -L //<target> -N" smb.txt
 logcmd "nxc smb <target> -u Anonymous -p Anonymous --shares" nxc.txt
 ```
 
-![NetExec](screenshots/logcmd_nxc.png)
+![NetExec](logcmd_nxc.png)
 
 ---
 
@@ -32,4 +32,4 @@ logcmd "nxc smb <target> -u Anonymous -p Anonymous --shares" nxc.txt
 logcmd "nmap -p135,139,445 -sV -sC <target>" nmap.html --format html
 ```
 
-![HTML Output](screenshots/logcmd_nmap_html.png)
+![HTML Output](logcmd_nmap_html.png)
