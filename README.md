@@ -1,12 +1,37 @@
 # logcmd
 
-A professional command-logging utility for penetration testing, red teaming, OSCP labs, and HTB/THM boxes. Runs any shell command through a pseudo-terminal (pty) so tool output streams live in your terminal — colors and all — while simultaneously writing a clean, timestamped, report-ready log to a file.
+![Python](https://img.shields.io/badge/Python-3.8+-blue)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
+![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS-orange)
 
-Built for the moment every OSCP/CPTS report needs: *"prove exactly what command you ran, when, against what, and what it returned."*
+A command logging utility for penetration testing, red teaming, OSCP/CPTS labs,
+and security assessments.
+
+Runs any shell command inside a pseudo-terminal (PTY), preserving live terminal
+output while generating clean, timestamped, report-ready logs.
 
 ## Why
 
-Piping a command's output to a file with `> log.txt` either loses color entirely or captures raw, unreadable ANSI escape codes. Tools like `script` capture a whole session but don't give you clean per-command metadata or a choice of output format. `logcmd` runs your command inside a real pty — so tools like `nmap`, `nxc`, `gobuster`, and `enum4linux-ng` believe they have a real terminal and emit color exactly as they would interactively — then saves a structured report with full metadata, in the format you actually want for your report.
+Redirecting output with `> log.txt` either loses ANSI color entirely or captures
+raw escape sequences that are difficult to read. Utilities like `script` record
+an entire interactive terminal session, but they don't provide structured
+per-command metadata or flexible output formats.
+
+`logcmd` executes your command inside a real pseudo-terminal (PTY), allowing
+tools such as `nmap`, `nxc`, `gobuster`, and `enum4linux-ng` to behave exactly
+as they would in an interactive terminal while generating clean, timestamped,
+report-ready logs in plain text, Markdown, or HTML.
+
+## Why not use `script`?
+
+The `script` utility records an entire interactive terminal session, making it
+great for session recording but less suitable for documenting individual
+commands during a penetration test.
+
+`logcmd` focuses on per-command logging. Every execution produces a structured,
+timestamped record with metadata (tool, target, working directory, duration,
+exit status, etc.) while preserving live terminal behavior and supporting
+plain text, Markdown, and HTML output for reporting.
 
 ## Features
 
@@ -22,11 +47,18 @@ Piping a command's output to a file with `> log.txt` either loses color entirely
 - **Carriage-return collapsing** — progress-bar/spinner output (nmap `--stats-every`, hashcat, hydra) is collapsed to its final rendered line instead of dumping every intermediate frame.
 - **Zero dependencies** — pure Python 3 standard library.
 
-**Verified against:** `smbclient`, `nxc` (NetExec), `nmap`. `logcmd` works with any shell command generically — it's a pty wrapper, not tool-specific — and the tools listed in `TOOL_NAME_MAP` get clean display names in the metadata, see `examples/` and `screenshots/`" instead of just asserting "confirmed end-to-end".
+**Verified with:** `nmap`, `NetExec`, and `smbclient`.
+
+`logcmd` is tool-agnostic and works with any shell command. The executables
+listed in `TOOL_NAME_MAP` are used only to provide human-readable tool names
+in the generated metadata.
 
 ## Installation
 
 ```bash
+git clone https://github.com/0xShyCell/logcmd.git
+cd logcmd
+
 chmod +x logcmd.py
 sudo cp logcmd.py /usr/local/bin/logcmd
 ```
@@ -155,7 +187,21 @@ Every run against this target — `smbclient`, `nxc`, `nmap` — produces the sa
 
 ## Requirements
 
-Python 3, Linux or macOS (uses the POSIX-only `pty`, `fcntl`, and `termios` modules — not compatible with native Windows; WSL works fine).
+Python 3.8+
+
+Linux or macOS (uses POSIX `pty`, `fcntl`, and `termios` modules).
+
+Windows is not supported natively.
+WSL is fully supported.
+
+## Contributing
+
+Contributions are welcome! Bug reports, feature requests, and pull requests
+are appreciated.
+
+## Support
+
+If you encounter a bug or have a feature request, please open a GitHub Issue.
 
 ## License
 
