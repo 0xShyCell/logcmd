@@ -89,10 +89,9 @@ VERSION = "1.0.0"
 
 SEPARATOR = "=" * 60
 
-# Cosmetic display-name lookup only — does NOT imply every tool listed here
-# has been verified end-to-end. logcmd works with any shell command
-# generically; this map just makes the "Tool:" metadata field readable
-# for commonly used offensive-security tools.
+# Human-readable display names for commonly used security tools.
+# Used only for log metadata. Commands not listed here continue to work
+# normally, as logcmd executes arbitrary shell commands.
 
 TOOL_NAME_MAP = {
     "nxc": "NetExec",
@@ -131,9 +130,9 @@ IP_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
 # Matches a full ANSI/VT100 escape sequence (used for full stripping).
 ANSI_ESCAPE_RE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
-# Matches CSI sequences that are NOT an SGR (color/style) sequence, i.e.
-# anything that doesn't end in 'm' (cursor movement, clear-line, etc).
-# These have no HTML equivalent and are dropped during HTML conversion.
+# Matches ANSI CSI control sequences other than SGR ('m') codes.
+# Terminal control operations (cursor movement, line clearing, etc.) are
+# omitted during HTML conversion because they have no HTML equivalent.
 ANSI_NON_SGR_RE = re.compile(r"\x1B\[[0-9;?]*[A-Za-ln-zA-LN-Z]")
 
 # Standard 16-color terminal palette (approximation of common terminal themes).
