@@ -1,0 +1,24 @@
+============================================================
+Timestamp : 2026-07-03 04:11:39 IST
+User      : noob@noob
+CWD       : /home/noob
+Tool      : smbclient
+Target    : 10.129.74.71
+Command   : smbclient -L //10.129.74.71 -N
+============================================================
+
+        Sharename       Type      Comment
+        ---------       ----      -------
+        ADMIN$          Disk      Remote Admin
+        C$              Disk      Default share
+        IPC$            IPC       Remote IPC
+        WorkShares      Disk
+Reconnecting with SMB1 for workgroup listing.
+do_connect: Connection to 10.129.74.71 failed (Error NT_STATUS_RESOURCE_NAME_NOT_FOUND)
+Unable to connect with SMB1 -- no workgroup available
+
+============================================================
+Exit Code : 0
+Duration  : 9.23s
+Status    : SUCCESS
+============================================================
