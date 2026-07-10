@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.1] - 2026-07-10
+
+### Fixed
+- Saved logs from interactive sessions (e.g. `ftp`) were silently missing the first several characters of typed commands — `cd pub` would be saved as just `ub`, `get employee-service.jar` as just `mployee-service.jar`. Root cause: `collapse_carriage_returns()` assumed every `\r` marks a full-line redraw (true for progress bars), but a single isolated `\r` in an interactive session is more often an orphaned artifact — e.g. a race between the kernel's own echo of the Enter keystroke and the child's output landing on the same stream, splitting what would normally be an adjacent `\r\n` pair apart.
+- An initial attempt at fixing the above (stripping all bare `\r` unconditionally during interactive sessions) introduced a new regression: genuine progress-bar redraws from interactive tools (e.g. `ftp`'s own file-transfer progress bar) no longer collapsed, producing one long run-on line of every intermediate frame concatenated together.
+- Final fix: `render_terminal_line_buffer()` replaces the old collapsing logic with a per-line heuristic — 2 or more `\r` occurrences on a line is treated as a genuine redraw (collapse to the last frame, as before), while 0 or 1 is treated as incidental and simply removed without discarding anything. This correctly handles both progress bars (many redraws) and isolated stray `\r`s (single occurrence) with one general rule, and is simpler than the previous approach — `run_command()`'s return signature and `normalize_output()`'s parameters are unchanged from 1.1.0.
+
 ## [1.1.0] - 2026-07-09
 
 ### Added
