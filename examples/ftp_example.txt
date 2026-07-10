@@ -1,0 +1,47 @@
+cmd : logcmd "10.129.3.103" ftp.txt
+to read : cat ftp.txt
+
+============================================================
+Timestamp : 2026-07-10 17:25:01 IST
+User      : noob@noob
+CWD       : /home/noob/lab/htb/DevArea/nmap
+Tool      : ftp
+Target    : 10.129.3.103
+Command   : ftp 10.129.3.103
+============================================================
+
+Connected to 10.129.3.103.
+220 (vsFTPd 3.0.5)
+Name (10.129.3.103:noob): anonymous
+230 Login successful.
+Remote system type is UNIX.
+Using binary mode to transfer files.
+ftp> ls
+229 Entering Extended Passive Mode (|||41920|)
+150 Here comes the directory listing.
+drwxr-xr-x    2 ftp      ftp          4096 Sep 22  2025 pub
+226 Directory send OK.
+ftp> cd pub
+250 Directory successfully changed.
+ftp> ls -lah
+229 Entering Extended Passive Mode (|||42757|)
+150 Here comes the directory listing.
+drwxr-xr-x    2 ftp      ftp          4096 Sep 22  2025 .
+drwxr-xr-x    3 ftp      ftp          4096 Sep 22  2025 ..
+-rw-r--r--    1 ftp      ftp       6445030 Sep 22  2025 employee-service.jar
+226 Directory send OK.
+          mployee-service.jar
+local: employee-service.jar remote: employee-service.jar
+229 Entering Extended Passive Mode (|||41078|)
+150 Opening BINARY mode data connection for employee-service.jar (6445030 bytes).
+100% |************************************|  6293 KiB  947.00 KiB/s    00:00 ETA
+226 Transfer complete.
+6445030 bytes received in 00:06 (931.46 KiB/s)
+ftp> exit
+221 Goodbye.
+
+============================================================
+Exit Code : 0
+Duration  : 21.87s
+Status    : SUCCESS
+============================================================
