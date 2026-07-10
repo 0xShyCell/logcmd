@@ -96,14 +96,14 @@ from datetime import datetime
 # Constants / lookup tables
 # --------------------------------------------------------------------------- #
 
-VERSION = "1.1.0"
+VERSION = "1.1.1"
 
 SEPARATOR = "=" * 60
 
 # Cosmetic display-name lookup only — does NOT imply every tool listed here
 # has been verified end-to-end. logcmd works with any shell command
 # generically; this map just makes the "Tool:" metadata field readable
-# For commonly used offensive-security tools.
+# for commonly used offensive-security tools.
 
 TOOL_NAME_MAP = {
     "nxc": "NetExec",
@@ -398,26 +398,45 @@ def run_command(command):
 # Output post-processing
 # --------------------------------------------------------------------------- #
 
-def collapse_carriage_returns(text):
+def render_terminal_line_buffer(text):
     """
-    Collapse in-place terminal overwrites (lines containing a lone '\\r',
-    used by progress bars / spinners in tools like nmap, hashcat, hydra)
-    down to their final rendered state, so the saved log shows one clean
-    line per logical update instead of every intermediate frame.
+    Resolve carriage-return usage per logical line, distinguishing two
+    genuinely different situations that both produce a bare '\\r':
+
+      * Progress-bar style redraws (nmap --stats-every, hydra, hashcat,
+        ftp's own transfer progress bar) redraw the SAME line many times
+        in quick succession -- several '\\r's in a row on one logical
+        line. The correct, desired result is just the final frame.
+
+      * A single, isolated '\\r' on an otherwise normal line is far more
+        likely to be an orphaned artifact -- e.g. a race between the
+        kernel's own echo of the Enter keystroke and the child's output
+        arriving on the same stream, splitting what would normally be
+        an adjacent '\\r\\n' pair apart. Treating that lone '\\r' as "start
+        overwriting from column 0" discards real characters that were
+        already there (this was the "cd pub" -> "ub" bug); the correct
+        fix is to simply remove it and keep everything in its original
+        order.
+
+    Heuristic: 2+ '\\r' occurrences on a line -> genuine redraw, keep
+    only the content after the last one. 0 or 1 -> treat as incidental,
+    strip it losslessly instead of discarding anything.
     """
-    cleaned_lines = []
+    output_lines = []
     for line in text.split("\n"):
-        if "\r" in line:
+        if line.count("\r") >= 2:
             line = line.split("\r")[-1]
-        cleaned_lines.append(line)
-    return "\n".join(cleaned_lines)
+        else:
+            line = line.replace("\r", "")
+        output_lines.append(line)
+    return "\n".join(output_lines)
 
 
 def normalize_output(raw_bytes):
     """Decode raw terminal bytes and normalize line endings for logging."""
     text = raw_bytes.decode("utf-8", errors="replace")
     text = text.replace("\r\n", "\n")
-    text = collapse_carriage_returns(text)
+    text = render_terminal_line_buffer(text)
     return text.strip("\n")
 
 
