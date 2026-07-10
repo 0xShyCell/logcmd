@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Tool: logcmd - Professional Command Logging Utility
+logcmd - Professional Command Logging Utility
 ================================================
 
 Purpose
@@ -12,6 +12,8 @@ Execute any shell command while:
     (timestamp, user, host, cwd, command, duration, exit code).
   * Supporting plain text, Markdown, or color-preserving HTML output.
   * Handling Ctrl+C gracefully and recording interrupted runs.
+  * Supporting fully interactive programs (ftp, ssh, mysql, vim, gdb,
+    the Python REPL, etc.), not just output-only tools.
 
 Designed for penetration testing, red teaming, OSCP labs, HTB/THM boxes,
 and professional security assessment reporting, where every command run
@@ -41,6 +43,8 @@ Examples
     logcmd "gobuster dir -u http://10.211.11.10 -w /usr/share/wordlists/dirb/common.txt" gobuster.md
     logcmd "cat /etc/passwd | grep -i bash" loot.txt --strip-ansi
     logcmd "hydra -l admin -P rockyou.txt ssh://10.211.11.10" hydra.txt --append
+    logcmd "ftp 10.129.2.84" ftp.txt
+    logcmd "ssh user@10.129.2.84" ssh.txt
 
 Installation
 ------------
@@ -60,6 +64,12 @@ Notes
   carriage-return collapsing, optional ANSI stripping, format
   conversion). The LIVE terminal output is streamed completely
   untouched and in real time.
+* Fully interactive programs (ftp, ssh, mysql, vim, gdb, the Python
+  REPL, etc.) are supported: your real stdin is forwarded to the
+  child's pty with the local terminal in raw mode, so keystrokes,
+  password prompts, arrow keys, and Ctrl+C/Ctrl+D/Ctrl+Z all reach the
+  child correctly. See run_command()'s docstring for the full
+  explanation of how signal delivery works under raw mode.
 """
 
 import argparse
@@ -79,19 +89,21 @@ import subprocess
 import sys
 import termios
 import time
+import tty
 from datetime import datetime
 
 # --------------------------------------------------------------------------- #
 # Constants / lookup tables
 # --------------------------------------------------------------------------- #
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 SEPARATOR = "=" * 60
 
-# Human-readable display names for commonly used security tools.
-# Used only for log metadata. Commands not listed here continue to work
-# normally, as logcmd executes arbitrary shell commands.
+# Cosmetic display-name lookup only — does NOT imply every tool listed here
+# has been verified end-to-end. logcmd works with any shell command
+# generically; this map just makes the "Tool:" metadata field readable
+# For commonly used offensive-security tools.
 
 TOOL_NAME_MAP = {
     "nxc": "NetExec",
@@ -130,9 +142,9 @@ IP_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
 # Matches a full ANSI/VT100 escape sequence (used for full stripping).
 ANSI_ESCAPE_RE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
-# Matches ANSI CSI control sequences other than SGR ('m') codes.
-# Terminal control operations (cursor movement, line clearing, etc.) are
-# omitted during HTML conversion because they have no HTML equivalent.
+# Matches CSI sequences that are NOT an SGR (color/style) sequence, i.e.
+# anything that doesn't end in 'm' (cursor movement, clear-line, etc).
+# These have no HTML equivalent and are dropped during HTML conversion.
 ANSI_NON_SGR_RE = re.compile(r"\x1B\[[0-9;?]*[A-Za-ln-zA-LN-Z]")
 
 # Standard 16-color terminal palette (approximation of common terminal themes).
@@ -146,7 +158,7 @@ BG_COLORS = {code + 10: color for code, color in FG_COLORS.items()}
 
 
 # --------------------------------------------------------------------------- #
-# Command execution (pty-backed, live + captured)
+# Command execution (pty-backed, live + captured, fully interactive)
 # --------------------------------------------------------------------------- #
 
 def get_term_size():
@@ -159,13 +171,51 @@ def run_command(command):
     """
     Execute `command` through `/bin/bash -c` inside a pseudo-terminal.
 
-    Running inside a pty (rather than a plain pipe) makes the invoked
-    program believe it has a real terminal attached, which is what causes
-    tools like nmap/nxc/gobuster to emit ANSI colors and live progress
-    output in the first place. The pty's master side is read in a loop:
-    every chunk read is written straight to the real stdout (so the user
-    sees live output exactly as if they had run the command directly) and
-    is also appended to an in-memory buffer for later logging.
+    Running inside a pty makes the invoked program believe it has a real
+    terminal attached -- this is what causes tools like nmap/nxc/gobuster
+    to emit ANSI colors, and what allows interactive tools (ftp, ssh,
+    mysql, vim, gdb, the Python REPL, etc.) to work at all. The pty's
+    master side is read in a loop: every chunk is written straight to
+    real stdout (live view, colors and cursor movement intact) and also
+    buffered for the saved log.
+
+    Interactive PTY support
+    ------------------------
+    This function also forwards the user's real stdin to the child's pty,
+    byte-for-byte, with the local terminal in raw mode. Raw mode is what
+    makes full-screen/line-editing tools (vim, nano, gdb, redis-cli,
+    mysql/psql readline, the Python REPL) work correctly -- every
+    keystroke (including arrow keys, backspace, Ctrl+C, Ctrl+D, Ctrl+Z)
+    reaches the child immediately rather than being buffered into a line
+    by our own terminal first.
+
+    Signal handling note
+    ---------------------
+    Raw mode disables ISIG on *our* terminal, so this process no longer
+    receives SIGINT/SIGTSTP directly from the keyboard -- that's expected
+    and correct: the raw interrupt/suspend bytes are forwarded to the
+    child's pty (whose slave side keeps normal cooked settings), and the
+    kernel generates the real signal for the CHILD's process group
+    directly. This is the same mechanism ssh/tmux use for a remote
+    session, and it's more correct than a wrapper manually re-signalling
+    a subprocess.
+
+    Because this process no longer reliably receives SIGINT itself in
+    interactive mode, "interrupted" status is detected by watching the
+    input stream for the terminal's actual INTR character (normally
+    Ctrl+C, read from the saved termios settings rather than hardcoded)
+    as it's forwarded -- this preserves the exact "did the user press
+    Ctrl+C" semantics of the original implementation. The original
+    SIGINT handler is kept in place unchanged as a fallback for the case
+    where stdin is NOT a real tty (piped/non-interactive invocation),
+    where nothing about the original behavior needs to change at all.
+
+    Known limitation: Ctrl+Z suspends the CHILD process (e.g. vim) via
+    the pty layer correctly, but does not make the outer `logcmd`
+    process itself a suspended job from the calling shell's point of
+    view -- that would require proxying job-control state between the
+    two pty layers, which is out of scope here. This matches the
+    behavior of most simple pty-wrapping tools.
 
     Returns:
         (raw_output: bytes, exit_code: int, interrupted: bool)
@@ -173,7 +223,8 @@ def run_command(command):
     master_fd, slave_fd = pty.openpty()
 
     # Match the real terminal's window size so full-screen / progress-bar
-    # tools (e.g. nmap with --stats-every, hashcat) render correctly.
+    # tools (e.g. nmap with --stats-every, hashcat, vim, gdb) render
+    # correctly from the start.
     try:
         rows, cols = get_term_size()
         winsize = struct.pack("HHHH", rows, cols, 0, 0)
@@ -186,7 +237,7 @@ def run_command(command):
         stdin=slave_fd,
         stdout=slave_fd,
         stderr=slave_fd,
-        preexec_fn=os.setsid,   # own process group, so Ctrl+C can target the whole pipeline
+        preexec_fn=os.setsid,   # own process group, so signals target the whole pipeline
         close_fds=True,
     )
     os.close(slave_fd)
@@ -194,6 +245,55 @@ def run_command(command):
     output_chunks = []
     interrupted = {"flag": False}
 
+    # --------------------------------------------------------------- #
+    # Local terminal raw-mode setup (enables byte-perfect interactive
+    # forwarding for vim/nano/gdb/ftp/ssh/etc.). Only applied if stdin
+    # is a real tty -- piped/non-interactive invocations are left
+    # completely untouched, preserving the original behavior for that
+    # case exactly.
+    # --------------------------------------------------------------- #
+    stdin_fd = sys.stdin.fileno()
+    stdin_is_tty = os.isatty(stdin_fd)
+    old_stdin_settings = None
+    intr_byte = b"\x03"  # sane fallback (Ctrl+C) if VINTR can't be read
+
+    if stdin_is_tty:
+        try:
+            old_stdin_settings = termios.tcgetattr(stdin_fd)
+            raw_intr = old_stdin_settings[6][termios.VINTR]
+            if isinstance(raw_intr, bytes):
+                intr_byte = raw_intr
+            elif isinstance(raw_intr, str):
+                intr_byte = raw_intr.encode("latin-1")
+            else:
+                intr_byte = bytes([raw_intr])  # int, e.g. some platforms/Python builds
+            tty.setraw(stdin_fd)
+        except (termios.error, ValueError, IndexError, TypeError):
+            old_stdin_settings = None
+
+    # --------------------------------------------------------------- #
+    # Dynamic terminal resize forwarding. When the real terminal window
+    # is resized, update the pty's winsize -- the kernel then delivers
+    # SIGWINCH to the child automatically, so full-screen apps (vim,
+    # nano, gdb, hashcat) redraw at the new size.
+    # --------------------------------------------------------------- #
+    def handle_winch(signum, frame):
+        try:
+            rows, cols = get_term_size()
+            winsize = struct.pack("HHHH", rows, cols, 0, 0)
+            fcntl.ioctl(master_fd, termios.TIOCSWINSZ, winsize)
+        except OSError:
+            pass
+
+    old_winch_handler = signal.signal(signal.SIGWINCH, handle_winch) if stdin_is_tty else None
+
+    # --------------------------------------------------------------- #
+    # Original SIGINT handler -- unchanged. Still fires (and is still
+    # the *only* interrupt-detection path) whenever stdin is not a real
+    # tty, since raw mode is never applied in that case and this
+    # process keeps receiving SIGINT from its own controlling terminal
+    # exactly as before.
+    # --------------------------------------------------------------- #
     def handle_sigint(signum, frame):
         """On Ctrl+C, forward SIGINT to the child's whole process group
         (so piped commands like `cmd1 | cmd2` are stopped together) and
@@ -204,7 +304,9 @@ def run_command(command):
         except (ProcessLookupError, OSError):
             pass
 
-    old_handler = signal.signal(signal.SIGINT, handle_sigint)
+    old_sigint_handler = signal.signal(signal.SIGINT, handle_sigint)
+
+    stdin_open = True
 
     try:
         while True:
@@ -227,8 +329,12 @@ def run_command(command):
                     os.write(1, data)
                 break
 
+            read_fds = [master_fd]
+            if stdin_open:
+                read_fds.append(stdin_fd)
+
             try:
-                ready, _, _ = select.select([master_fd], [], [], 0.2)
+                ready, _, _ = select.select(read_fds, [], [], 0.2)
             except InterruptedError:
                 continue
             except OSError:
@@ -243,8 +349,42 @@ def run_command(command):
                     break
                 output_chunks.append(data)
                 os.write(1, data)
+
+            if stdin_open and stdin_fd in ready:
+                try:
+                    user_input = os.read(stdin_fd, 4096)
+                except OSError:
+                    user_input = b""
+                if not user_input:
+                    # EOF on our stdin (Ctrl+D outside raw mode, or piped
+                    # input exhausted). Stop watching it -- the child may
+                    # still run fine without further input (nmap never
+                    # needed any to begin with).
+                    stdin_open = False
+                else:
+                    # Detect the real INTR character so "interrupted"
+                    # status stays accurate even though local ISIG is
+                    # disabled in raw mode (see docstring). The byte is
+                    # still forwarded below regardless -- the CHILD's
+                    # own pty (slave side, normal cooked settings) will
+                    # generate the actual SIGINT/SIGTSTP for the child
+                    # directly, which is the correct signal-delivery
+                    # path for Ctrl+C, Ctrl+Z, Ctrl+D, and friends.
+                    if intr_byte in user_input:
+                        interrupted["flag"] = True
+                    try:
+                        os.write(master_fd, user_input)
+                    except OSError:
+                        pass
     finally:
-        signal.signal(signal.SIGINT, old_handler)
+        signal.signal(signal.SIGINT, old_sigint_handler)
+        if old_winch_handler is not None:
+            signal.signal(signal.SIGWINCH, old_winch_handler)
+        if old_stdin_settings is not None:
+            try:
+                termios.tcsetattr(stdin_fd, termios.TCSADRAIN, old_stdin_settings)
+            except termios.error:
+                pass
         try:
             os.close(master_fd)
         except OSError:
@@ -602,12 +742,17 @@ def build_parser():
   logcmd "gobuster dir -u http://10.211.11.10 -w wordlist.txt" gobuster.md
   logcmd "cat /etc/passwd | grep -i bash" loot.txt --strip-ansi
   logcmd "hydra -l admin -P rockyou.txt ssh://10.211.11.10" hydra.txt --append
+  logcmd "ftp 10.129.2.84" ftp.txt
+  logcmd "ssh user@10.129.2.84" ssh.txt
 
 Notes:
   * Quote the full command as a single argument so pipes, redirects, and
     quoted flags (e.g. -u '' -p '') are passed through to bash correctly.
   * Output format defaults to: .md/.markdown -> markdown, .html/.htm -> html,
     anything else -> plain. Override with --format.
+  * Fully interactive programs (ftp, ssh, mysql, vim, gdb, the Python
+    REPL, etc.) are supported -- your keystrokes are forwarded to the
+    child exactly as if you'd run it directly.
 """,
     )
     parser.add_argument("command", help="Full command to execute (quote it as one argument)")
