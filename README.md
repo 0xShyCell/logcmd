@@ -47,11 +47,7 @@ plain text, Markdown, and HTML output for reporting.
 - **Carriage-return collapsing** — progress-bar/spinner output (nmap `--stats-every`, hashcat, hydra) is collapsed to its final rendered line instead of dumping every intermediate frame.
 - **Zero dependencies** — pure Python 3 standard library.
 
-**Verified with:** `nmap`, `NetExec`, and `smbclient`.
-
-`logcmd` is tool-agnostic and works with any shell command. The executables
-listed in `TOOL_NAME_MAP` are used only to provide human-readable tool names
-in the generated metadata.
+**Verified with:** `smbclient`, `nxc` (NetExec), `ftp`, `nmap`,  — see [`examples/`](examples/) for real captured output and [`screenshots/`](screenshots/) for the live terminal view. `logcmd` works with any shell command generically — it's a pty wrapper, not tool-specific — and the tools listed in `TOOL_NAME_MAP` get clean display names in the metadata
 
 ## Installation
 
@@ -201,7 +197,7 @@ Every run against this target — `smbclient`, `nxc`, `nmap` — produces the sa
 
 Python 3.8+
 
-Linux or macOS (uses POSIX `pty`, `fcntl`, and `termios` modules).
+Linux or macOS (uses the POSIX-only `pty`, `fcntl`, and `termios` modules — not compatible with native Windows; WSL works fine).
 
 Windows is not supported natively.
 WSL is fully supported.
